@@ -1,4 +1,5 @@
 
+
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -9,19 +10,27 @@ function Pricing() {
   const [loading, setLoading] = useState(false)
 
   const token = localStorage.getItem('token')
-  const user = JSON.parse(localStorage.getItem('user') || 'null')
+
+  let user = null
+  try {
+    user = JSON.parse(localStorage.getItem('user') || 'null')
+  } catch {
+    user = null
+  }
+
+  const isLoggedIn = Boolean(token && user)
   const isPaid = user?.subscription === 'Paid'
 
   const handleUpgrade = () => {
     setMessage('')
 
-    if (!token || !user) {
+    if (!isLoggedIn) {
       navigate('/login')
       return
     }
 
     if (isPaid) {
-      setMessage('You already have a Paid subscription.')
+      setMessage('You are already on the Paid plan.')
       return
     }
 
@@ -32,7 +41,8 @@ function Pricing() {
     event.preventDefault()
     setMessage('')
 
-    if (!token || !user) {
+    if (!isLoggedIn) {
+      setShowModal(false)
       navigate('/login')
       return
     }
@@ -46,9 +56,7 @@ function Pricing() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          paymentMethod: 'demo',
-        }),
+        body: JSON.stringify({ paymentMethod: 'demo' }),
       })
 
       const data = await response.json()
@@ -64,9 +72,10 @@ function Pricing() {
       }
 
       localStorage.setItem('user', JSON.stringify(updatedUser))
+      window.dispatchEvent(new Event('authChanged'))
+
       setShowModal(false)
-      setMessage('Your subscription is now Paid!')
-      window.location.reload()
+      setMessage('Your subscription has been upgraded to Paid!')
     } catch (error) {
       console.error('Upgrade error:', error)
       setMessage('Could not connect to the server. Please try again.')
@@ -76,95 +85,168 @@ function Pricing() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 px-4 py-12">
+    <main className="min-h-screen bg-stone-50 px-4 py-12 sm:py-16">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-4xl font-bold text-center text-teal-600 mb-3">
-          Choose Your Plan
-        </h1>
-
-        <p className="text-center text-gray-600 mb-10">
-          Choose the plan that suits your DEV@Deakin journey.
+        <p className="text-center text-sm font-semibold uppercase tracking-[0.2em] text-violet-600 mb-3">
+          Membership
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <section className="bg-white rounded-xl shadow-md p-8">
-            <h2 className="text-2xl font-bold mb-2">Free</h2>
-            <p className="text-3xl font-bold mb-6">$0</p>
+        <h1 className="text-4xl sm:text-5xl font-bold text-center text-gray-900 mb-4">
+          Our Pricing Plans
+        </h1>
 
-            <ul className="space-y-3 text-gray-700 mb-8">
-              <li>✓ Browse community content</li>
-              <li>✓ Create an account</li>
-              <li>✓ Access standard features</li>
+        <p className="text-center text-gray-500 mb-12">
+          Choose the plan that suits your learning needs.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-7 max-w-3xl mx-auto items-stretch">
+          {/* Free plan */}
+          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7 sm:p-8 flex flex-col">
+            <h2 className="text-xl font-bold text-gray-900">Free Plan</h2>
+            <p className="text-sm text-gray-500 mt-2">
+              A good place to start.
+            </p>
+
+            <div className="mt-5 mb-6">
+              <span className="text-4xl font-bold text-gray-900">£0</span>
+              <span className="text-sm text-gray-500"> / forever</span>
+            </div>
+
+            <ul className="space-y-4 text-sm text-gray-700 flex-1 mb-8">
+              <li>✓ Browse community posts</li>
+              <li>✓ Save up to 5 posts</li>
+              <li>✓ General learning feed</li>
+              <li>✓ Standard profile</li>
             </ul>
 
-            <p className="font-semibold text-teal-600">
-              {user ? (isPaid ? 'Included in your Paid plan' : 'Your current plan') : 'Available to everyone'}
-            </p>
+            <div className={`rounded-lg py-3 px-4 text-center text-sm font-semibold ${
+              isLoggedIn && !isPaid
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-gray-100 text-gray-600'
+            }`}>
+              {isLoggedIn && !isPaid
+                ? 'Current Plan'
+                : isPaid
+                  ? 'Included in Paid Plan'
+                  : 'Free Plan'}
+            </div>
           </section>
 
-          <section className="bg-white rounded-xl shadow-md border-2 border-teal-500 p-8">
-            <h2 className="text-2xl font-bold mb-2">Paid</h2>
-            <p className="text-3xl font-bold mb-6">
-              Premium
+          {/* Paid plan */}
+          <section className="relative bg-white rounded-2xl border-2 border-violet-500 shadow-lg p-7 sm:p-8 flex flex-col">
+            <span className="absolute -top-3 left-6 rounded-full bg-violet-600 text-white text-xs font-bold uppercase tracking-wide px-3 py-1">
+              Recommended
+            </span>
+
+            <h2 className="text-xl font-bold text-gray-900 mt-2">
+              Paid Plan
+            </h2>
+
+            <p className="text-sm text-gray-500 mt-2">
+              Get more from your learning experience.
             </p>
 
-            <ul className="space-y-3 text-gray-700 mb-8">
-              <li>✓ Everything in Free</li>
-              <li>✓ Premium member status</li>
-              <li>✓ Access to paid-plan features</li>
+            <div className="mt-5 mb-6">
+              <span className="text-4xl font-bold text-gray-900">£18.45</span>
+              <span className="text-sm text-gray-500"> / month</span>
+            </div>
+
+            <ul className="space-y-4 text-sm text-gray-700 flex-1 mb-8">
+              <li>✓ Everything in the Free plan</li>
+              <li>✓ Unlimited saved posts</li>
+              <li>✓ Priority post visibility</li>
+              <li>✓ Personal learning feed</li>
+              <li>✓ Premium user profile</li>
             </ul>
 
             <button
               type="button"
               onClick={handleUpgrade}
               disabled={loading || isPaid}
-              className="w-full bg-teal-600 text-white rounded-lg p-3 hover:bg-teal-700 disabled:opacity-50"
+              className={`w-full rounded-lg px-4 py-3 font-semibold transition ${
+                isPaid
+                  ? 'bg-emerald-100 text-emerald-800 cursor-default'
+                  : 'bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50'
+              }`}
             >
-              {isPaid ? 'Already Paid' : 'Upgrade to Paid'}
+              {isPaid
+                ? 'Current Plan'
+                : loading
+                  ? 'Processing...'
+                  : 'Upgrade Plan'}
             </button>
           </section>
         </div>
 
         {message && (
-          <p className="text-center mt-6 text-teal-700" role="status">
+          <p
+            role="status"
+            className="text-center mt-6 text-sm font-medium text-teal-700"
+          >
             {message}
           </p>
         )}
       </div>
 
+      {/* Demo upgrade modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
-            <h2 className="text-2xl font-bold text-teal-600 mb-3">
-              Upgrade Subscription
-            </h2>
-
-            <p className="text-gray-600 mb-6">
-              This is a demonstration upgrade. No real payment will be taken.
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !loading) {
+              setShowModal(false)
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="upgrade-title"
+            className="w-full max-w-md rounded-2xl bg-white p-7 shadow-2xl"
+          >
+            <p className="text-xs font-bold uppercase tracking-widest text-violet-600 mb-2">
+              Paid membership
             </p>
 
-            <form onSubmit={handlePaymentSubmit} className="space-y-4">
-              <p className="text-sm text-gray-600">
-                Confirm that you want to upgrade your account to the Paid plan.
-              </p>
+            <h2
+              id="upgrade-title"
+              className="text-2xl font-bold text-gray-900 mb-2"
+            >
+              Upgrade to Paid
+            </h2>
 
+            <p className="text-sm text-gray-500 mb-5">
+              £18.45 / month
+            </p>
+
+            <div className="rounded-lg bg-violet-50 p-4 text-sm text-violet-900 mb-6">
+              This is a demonstration upgrade. No real payment will be taken,
+              and you should not enter real card details.
+            </div>
+
+            <p className="text-sm text-gray-600 mb-6">
+              Confirm below to update your subscription in Firestore.
+            </p>
+
+            <form onSubmit={handlePaymentSubmit} className="space-y-3">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-teal-600 text-white rounded-lg p-3 hover:bg-teal-700 disabled:opacity-50"
+                className="w-full rounded-lg bg-violet-600 px-4 py-3 font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
               >
                 {loading ? 'Processing...' : 'Confirm Demo Upgrade'}
               </button>
 
               <button
                 type="button"
+                disabled={loading}
                 onClick={() => setShowModal(false)}
-                className="w-full border border-gray-300 rounded-lg p-3 hover:bg-gray-50"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancel
               </button>
             </form>
-          </div>
+          </section>
         </div>
       )}
     </main>
